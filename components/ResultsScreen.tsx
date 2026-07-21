@@ -203,8 +203,13 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
             if (response.ok) {
                 setSendSuccess(true);
             } else {
-                const errorData = await response.json();
-                setErrorMessage(errorData.error || 'Hubo un error al enviar la prueba.');
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const errorData = await response.json();
+                    setErrorMessage(errorData.error || 'Hubo un error al enviar la prueba.');
+                } else {
+                    setErrorMessage('Hubo un error en el servidor. Por favor, intenta de nuevo más tarde.');
+                }
                 setSendSuccess(false);
             }
         } catch (error: any) {

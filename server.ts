@@ -22,16 +22,17 @@ app.post("/api/send-results", async (req, res) => {
   console.log("Debug: Body received:", req.body);
   
   const resendApiKey = process.env.RESEND_API_KEY;
+  console.log("Debug: API Key present:", !!resendApiKey);
   if (!resendApiKey) {
     return res.status(500).json({ error: "RESEND_API_KEY no está configurada." });
   }
 
-  const resend = new Resend(resendApiKey);
-
   try {
+    const resend = new Resend(resendApiKey);
     const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
     
-    await resend.emails.send({
+    console.log("Debug: Attempting to send email...");
+    const result = await resend.emails.send({
       from: "Examen <onboarding@resend.dev>",
       to: process.env.TEACHER_EMAIL || "tu-correo@ejemplo.com", 
       subject: `Resultados: ${subject} - ${name} ${lastName}`,
@@ -45,10 +46,11 @@ app.post("/api/send-results", async (req, res) => {
         <pre style="white-space: pre-wrap; font-family: sans-serif;">${answersSummary}</pre>
       `,
     });
+    console.log("Debug: Resend result:", JSON.stringify(result));
 
     res.status(200).json({ status: "success" });
   } catch (error: any) {
-    console.error("Server Error:", error);
+    console.error("Server Error details:", error);
     res.status(500).json({ error: error.message || "Error al enviar el correo." });
   }
 });
