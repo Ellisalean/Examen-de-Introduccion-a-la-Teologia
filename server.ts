@@ -34,7 +34,7 @@ app.post("/api/send-results", async (req, res) => {
     console.log("Debug: Attempting to send email...");
     const result = await resend.emails.send({
       from: "Examen <eliseortega20@gmail.com>",
-      to: process.env.TEACHER_EMAIL || "tu-correo@ejemplo.com", 
+      to: process.env.TEACHER_EMAIL || "eliseortega20@gmail.com", 
       subject: `Resultados: ${subject} - ${name} ${lastName}`,
       html: `
         <h2>Resultados de Evaluación</h2>

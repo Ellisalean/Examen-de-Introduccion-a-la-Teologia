@@ -250,7 +250,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
                         <div className="bg-[#fafafa] p-6 rounded-lg border border-gray-100 shadow-sm text-left">
                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 font-semibold">Materia</p>
-                            <p className="font-medium text-gray-800 text-lg">Examen de Asesorando para El Cambio</p>
+                            <p className="font-medium text-gray-800 text-lg">Examen de Introducción a la Teología</p>
                         </div>
                         <div className="bg-[#fafafa] p-6 rounded-lg border border-gray-100 shadow-sm text-left">
                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 font-semibold">Calificación</p>
