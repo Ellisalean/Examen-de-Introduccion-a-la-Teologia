@@ -18,7 +18,8 @@ app.use("/api", (req, res, next) => {
 });
 
 // API routes
-app.post("/api/send-results", async (req, res) => {
+console.log("Defining /api/send-results route");
+app.all("/api/send-results", async (req, res) => {
   console.log("Debug: API hit /api/send-results POST");
   console.log("Debug: Body received:", req.body);
   
