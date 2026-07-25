@@ -16,47 +16,53 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
-async function startServer() {
-  app.post("/api/send-results", async (req, res) => {
-    console.log("Debug: API hit /api/send-results POST");
-    console.log("Debug: Body received:", req.body);
+// API routes
+console.log("Defining /api/send-results route");
+app.post("/api/send-results", async (req, res) => {
+  console.log("Debug: API hit /api/send-results POST");
+  console.log("Debug: Body received:", req.body);
+  
+  const formspreeFormId = process.env.FORMSPREE_FORM_ID;
+  console.log("Debug: Formspree Form ID present:", !!formspreeFormId);
+  
+  if (!formspreeFormId) {
+    console.error("Error: FORMSPREE_FORM_ID no está configurada.");
+    return res.status(500).json({ error: "FORMSPREE_FORM_ID no está configurada." });
+  }
+
+  try {
+    const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
     
-    const formspreeFormId = process.env.FORMSPREE_FORM_ID;
-    console.log("Debug: Formspree Form ID present:", !!formspreeFormId);
-    if (!formspreeFormId) {
-      return res.status(500).json({ error: "FORMSPREE_FORM_ID no está configurada." });
+    console.log("Debug: Attempting to send to Formspree...");
+    const response = await fetch(`https://formspree.io/f/${formspreeFormId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+         name,
+         lastName,
+         subject,
+         score,
+         totalPoints,
+         percentage,
+         answersSummary
+      }),
+    });
+
+    if (!response.ok) {
+       const text = await response.text();
+       throw new Error(`Formspree error: ${response.status} ${response.statusText} - ${text}`);
     }
 
-    try {
-      const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
-      
-      console.log("Debug: Attempting to send to Formspree...");
-      const response = await fetch(`https://formspree.io/f/${formspreeFormId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-           name,
-           lastName,
-           subject,
-           score,
-           totalPoints,
-           percentage,
-           answersSummary
-        }),
-      });
+    console.log("Debug: Formspree success");
 
-      if (!response.ok) {
-         throw new Error(`Formspree error: ${response.statusText}`);
-      }
+    res.status(200).json({ status: "success" });
+  } catch (error: any) {
+    console.error("Server Error details:", error);
+    res.status(500).json({ error: error.message || "Error al enviar el correo." });
+  }
+});
 
-      console.log("Debug: Formspree success");
-
-      res.status(200).json({ status: "success" });
-    } catch (error: any) {
-      console.error("Server Error details:", error);
-      res.status(500).json({ error: error.message || "Error al enviar el correo." });
-    }
-  });
+async function startServer() {
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
