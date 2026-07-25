@@ -27,7 +27,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStart }) => {
             <div className="border-b border-[#4caf50] w-16 mb-6 pb-2">
                 <span className="text-[#4caf50] text-xl">01</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-light text-[#4caf50] mb-6">Examen de Asesorando para El Cambio</h1>
+            <h1 className="text-4xl md:text-5xl font-light text-[#4caf50] mb-6">Examen de Introducción a la Teología</h1>
             <p className="text-white text-lg mb-10 font-light">
                 Esta prueba contiene preguntas sobre Asesorando para El Cambio. ¡Éxito!
             </p>

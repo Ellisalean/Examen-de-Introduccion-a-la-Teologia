@@ -144,7 +144,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Resultados_Asesorando para El Cambio_${studentName}_${studentLastName}.pdf`);
+            pdf.save(`Resultados_Introducción a la Teología_${studentName}_${studentLastName}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);
             alert('Hubo un error al generar el PDF.');
@@ -192,7 +192,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
                 body: JSON.stringify({
                     name: studentName,
                     lastName: studentLastName,
-                    subject: 'Examen de Asesorando para el Cambio',
+                    subject: 'Examen de Introducción a la Teología',
                     score: score,
                     totalPoints: totalPoints,
                     percentage: percentage,

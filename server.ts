@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -17,47 +16,48 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
-// API routes
-console.log("Defining /api/send-results route");
-app.all("/api/send-results", async (req, res) => {
-  console.log("Debug: API hit /api/send-results POST");
-  console.log("Debug: Body received:", req.body);
-  
-  const resendApiKey = process.env.RESEND_API_KEY;
-  console.log("Debug: API Key present:", !!resendApiKey);
-  if (!resendApiKey) {
-    return res.status(500).json({ error: "RESEND_API_KEY no está configurada." });
-  }
-
-  try {
-    const resend = new Resend(resendApiKey);
-    const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
-    
-    console.log("Debug: Attempting to send email...");
-    const result = await resend.emails.send({
-      from: "Examen <eliseortega20@gmail.com>",
-      to: process.env.TEACHER_EMAIL || "eliseortega20@gmail.com", 
-      subject: `Resultados: ${subject} - ${name} ${lastName}`,
-      html: `
-        <h2>Resultados de Evaluación</h2>
-        <p><strong>Estudiante:</strong> ${name} ${lastName}</p>
-        <p><strong>Materia:</strong> ${subject}</p>
-        <p><strong>Puntuación:</strong> ${score} / ${totalPoints} (${percentage}%)</p>
-        <br/>
-        <h3>Resumen de Respuestas:</h3>
-        <pre style="white-space: pre-wrap; font-family: sans-serif;">${answersSummary}</pre>
-      `,
-    });
-    console.log("Debug: Resend result:", JSON.stringify(result));
-
-    res.status(200).json({ status: "success" });
-  } catch (error: any) {
-    console.error("Server Error details:", error);
-    res.status(500).json({ error: error.message || "Error al enviar el correo." });
-  }
-});
-
 async function startServer() {
+  app.post("/api/send-results", async (req, res) => {
+    console.log("Debug: API hit /api/send-results POST");
+    console.log("Debug: Body received:", req.body);
+    
+    const formspreeFormId = process.env.FORMSPREE_FORM_ID;
+    console.log("Debug: Formspree Form ID present:", !!formspreeFormId);
+    if (!formspreeFormId) {
+      return res.status(500).json({ error: "FORMSPREE_FORM_ID no está configurada." });
+    }
+
+    try {
+      const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
+      
+      console.log("Debug: Attempting to send to Formspree...");
+      const response = await fetch(`https://formspree.io/f/${formspreeFormId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+           name,
+           lastName,
+           subject,
+           score,
+           totalPoints,
+           percentage,
+           answersSummary
+        }),
+      });
+
+      if (!response.ok) {
+         throw new Error(`Formspree error: ${response.statusText}`);
+      }
+
+      console.log("Debug: Formspree success");
+
+      res.status(200).json({ status: "success" });
+    } catch (error: any) {
+      console.error("Server Error details:", error);
+      res.status(500).json({ error: error.message || "Error al enviar el correo." });
+    }
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
