@@ -5,64 +5,58 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: '50mb' }));
+async function startServer() {
+  const app = express();
 
-// Debug all API requests
-app.use("/api", (req, res, next) => {
-  console.log(`Debug: API request received: ${req.method} ${req.originalUrl}`);
-  next();
-});
+  app.use(express.json({ limit: '50mb' }));
 
-// API routes
-console.log("Defining /api/send-results route");
-app.post("/api/send-results", async (req, res) => {
-  console.log("Debug: API hit /api/send-results POST");
-  console.log("Debug: Body received:", req.body);
-  
-  const formspreeFormId = process.env.FORMSPREE_FORM_ID;
-  console.log("Debug: Formspree Form ID present:", !!formspreeFormId);
-  
-  if (!formspreeFormId) {
-    console.error("Error: FORMSPREE_FORM_ID no está configurada.");
-    return res.status(500).json({ error: "FORMSPREE_FORM_ID no está configurada." });
-  }
-
-  try {
-    const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
+  // API routes
+  console.log("Defining /api/send-results route");
+  app.post("/api/send-results", async (req, res) => {
+    console.log("Debug: API hit /api/send-results POST");
+    console.log("Debug: Body received:", req.body);
     
-    console.log("Debug: Attempting to send to Formspree...");
-    const response = await fetch(`https://formspree.io/f/${formspreeFormId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-         name,
-         lastName,
-         subject,
-         score,
-         totalPoints,
-         percentage,
-         answersSummary
-      }),
-    });
-
-    if (!response.ok) {
-       const text = await response.text();
-       throw new Error(`Formspree error: ${response.status} ${response.statusText} - ${text}`);
+    const formspreeFormId = process.env.FORMSPREE_FORM_ID;
+    console.log("Debug: Formspree Form ID present:", !!formspreeFormId);
+    
+    if (!formspreeFormId) {
+      console.error("Error: FORMSPREE_FORM_ID no está configurada.");
+      return res.status(500).json({ error: "FORMSPREE_FORM_ID no está configurada." });
     }
 
-    console.log("Debug: Formspree success");
+    try {
+      const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
+      
+      console.log("Debug: Attempting to send to Formspree...");
+      const response = await fetch(`https://formspree.io/f/${formspreeFormId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+           name,
+           lastName,
+           subject,
+           score,
+           totalPoints,
+           percentage,
+           answersSummary
+        }),
+      });
 
-    res.status(200).json({ status: "success" });
-  } catch (error: any) {
-    console.error("Server Error details:", error);
-    res.status(500).json({ error: error.message || "Error al enviar el correo." });
-  }
-});
+      if (!response.ok) {
+         const text = await response.text();
+         throw new Error(`Formspree error: ${response.status} ${response.statusText} - ${text}`);
+      }
 
-async function startServer() {
+      console.log("Debug: Formspree success");
+
+      res.status(200).json({ status: "success" });
+    } catch (error: any) {
+      console.error("Server Error details:", error);
+      res.status(500).json({ error: error.message || "Error al enviar el correo." });
+    }
+  });
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
