@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useForm, ValidationError } from '@formspree/react';
 import type { Question, UserAnswer } from '../types';
 import { QuestionType } from '../types';
 import { Download, Send, RotateCcw, Shield } from 'lucide-react';
@@ -104,11 +105,40 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
     const percentage = Math.round((score / totalPoints) * 100);
     const isSuccess = percentage >= 70;
     
-    const [isSending, setIsSending] = useState(false);
-    const [sendSuccess, setSendSuccess] = useState<boolean | null>(null);
+    const [state, handleSubmit] = useForm('xnjeoolz');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [token, setToken] = useState<string>('');
     const [currentDate, setCurrentDate] = useState<string>('');
+
+    const answersSummary = useMemo(() => {
+        let summary = '';
+        questions.forEach((q, index) => {
+            const userAnswer = userAnswers[index];
+            let isCorrect = false;
+            // ... (keep the existing logic)
+            if (q.type === QuestionType.MULTIPLE_CHOICE) {
+                 isCorrect = q.options?.find(opt => opt.text === userAnswer)?.isCorrect || false;
+            } else if (q.type === QuestionType.FILL_IN_THE_BLANK) {
+                isCorrect = typeof userAnswer === 'string' && userAnswer.toLowerCase().trim() === q.correctAnswer?.toLowerCase().trim();
+            } else if (q.type === QuestionType.TRUE_FALSE) {
+                isCorrect = userAnswer === q.correctBoolean;
+            } else if (q.type === QuestionType.OPEN_ENDED) {
+                if (typeof userAnswer === 'string' && q.keywords) {
+                    const lowerAnswer = userAnswer.toLowerCase();
+                    isCorrect = q.keywords.some(keyword => lowerAnswer.includes(keyword.toLowerCase()));
+                }
+            }
+
+            summary += `${index + 1}. ${q.questionText}\n`;
+            summary += `Tu respuesta: ${JSON.stringify(userAnswer)}\n`;
+            if (!isCorrect && (q.type === 'MULTIPLE_CHOICE' || q.type === 'FILL_IN_THE_BLANK' || q.type === 'TRUE_FALSE' || q.type === 'OPEN_ENDED')) {
+                summary += `Respuesta correcta: ${getCorrectAnswerText(q)}\n`;
+            }
+            summary += '\n';
+        });
+        return summary;
+    }, [questions, userAnswers]);
+
 
     useEffect(() => {
         const date = new Date();
@@ -184,7 +214,12 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
         });
 
         try {
-            const response = await fetch('/api/send-results', {
+            const formspreeFormId = import.meta.env.VITE_FORMSPREE_FORM_ID;
+            if (!formspreeFormId) {
+                throw new Error("VITE_FORMSPREE_FORM_ID no está configurada.");
+            }
+
+            const response = await fetch(`https://formspree.io/f/${formspreeFormId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -203,13 +238,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
             if (response.ok) {
                 setSendSuccess(true);
             } else {
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") !== -1) {
-                    const errorData = await response.json();
-                    setErrorMessage(errorData.error || 'Hubo un error al enviar la prueba.');
-                } else {
-                    setErrorMessage('Hubo un error en el servidor. Por favor, intenta de nuevo más tarde.');
-                }
+                setErrorMessage('Hubo un error al enviar la prueba.');
                 setSendSuccess(false);
             }
         } catch (error: any) {
@@ -274,34 +303,42 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ studentName, studentLastN
 
             {/* Footer / Buttons */}
             <div className="bg-white px-8 pb-12 flex flex-col items-center">
-                <div className="flex flex-wrap justify-center gap-6 w-full mt-4">
-                    <button 
-                        onClick={handleSendEmail} 
-                        disabled={isSending || sendSuccess === true} 
-                        className="bg-[#1a3673] hover:bg-blue-900 text-white font-medium py-3 px-8 rounded-full transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                    >
-                        {isSending ? 'Enviando...' : sendSuccess ? '¡Enviado!' : 'Enviar Resultados al Profesor'}
-                    </button>
-                    <button 
-                        onClick={handleDownloadPDF} 
-                        className="bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-50 font-medium py-3 px-8 rounded-full transition-colors flex items-center gap-2 shadow-sm"
-                    >
-                        Descargar PDF
-                    </button>
-                    <button 
-                        onClick={onRestart} 
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-8 rounded-full transition-colors flex items-center gap-2 shadow-sm"
-                    >
-                        <RotateCcw size={18} />
-                        Repetir Prueba
-                    </button>
-                </div>
-                {sendSuccess === false && (
-                    <p className="text-red-500 mt-6 text-sm">{errorMessage || 'Hubo un error al enviar la prueba.'}</p>
-                )}
-                {sendSuccess === true && (
-                    <p className="text-green-600 mt-6 text-sm font-medium">¡Resultados enviados correctamente!</p>
-                )}
+                    <form onSubmit={handleSubmit} className="flex flex-wrap justify-center gap-6 w-full mt-4">
+                        <input type="hidden" name="name" value={studentName} />
+                        <input type="hidden" name="lastName" value={studentLastName} />
+                        <input type="hidden" name="subject" value="Examen de Introducción a la Teología" />
+                        <input type="hidden" name="score" value={score} />
+                        <input type="hidden" name="totalPoints" value={totalPoints} />
+                        <input type="hidden" name="percentage" value={percentage} />
+                        <textarea name="answersSummary" value={answersSummary} style={{display: 'none'}} readOnly />
+
+                        <button 
+                            type="submit"
+                            disabled={state.submitting || state.succeeded} 
+                            className="bg-[#1a3673] hover:bg-blue-900 text-white font-medium py-3 px-8 rounded-full transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        >
+                            {state.submitting ? 'Enviando...' : state.succeeded ? '¡Enviado!' : 'Enviar Resultados al Profesor'}
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={handleDownloadPDF} 
+                            className="bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-50 font-medium py-3 px-8 rounded-full transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                            Descargar PDF
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={onRestart} 
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-8 rounded-full transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                            <RotateCcw size={18} />
+                            Repetir Prueba
+                        </button>
+                    </form>
+                    <ValidationError errors={state.errors} />
+                    {state.succeeded && (
+                        <p className="text-green-600 mt-6 text-sm font-medium">¡Resultados enviados correctamente!</p>
+                    )}
             </div>
         </div>
     );

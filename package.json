@@ -9,6 +9,7 @@
     "lint": "vite build --mode development"
   },
   "dependencies": {
+    "@formspree/react": "^3.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "dotenv": "^17.3.1",

@@ -12,65 +12,30 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
 
-  // API routes
-  console.log("Defining /api/send-results route");
-  app.post("/api/send-results", async (req, res) => {
-    console.log("Debug: API hit /api/send-results POST");
-    console.log("Debug: Body received:", req.body);
-    
-    const formspreeFormId = process.env.FORMSPREE_FORM_ID;
-    console.log("Debug: Formspree Form ID present:", !!formspreeFormId);
-    
-    if (!formspreeFormId) {
-      console.error("Error: FORMSPREE_FORM_ID no está configurada.");
-      return res.status(500).json({ error: "FORMSPREE_FORM_ID no está configurada." });
+  // CORS Middleware
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
     }
-
-    try {
-      const { name, lastName, subject, score, totalPoints, percentage, answersSummary } = req.body;
-      
-      console.log("Debug: Attempting to send to Formspree...");
-      const response = await fetch(`https://formspree.io/f/${formspreeFormId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-           name,
-           lastName,
-           subject,
-           score,
-           totalPoints,
-           percentage,
-           answersSummary
-        }),
-      });
-
-      if (!response.ok) {
-         const text = await response.text();
-         throw new Error(`Formspree error: ${response.status} ${response.statusText} - ${text}`);
-      }
-
-      console.log("Debug: Formspree success");
-
-      res.status(200).json({ status: "success" });
-    } catch (error: any) {
-      console.error("Server Error details:", error);
-      res.status(500).json({ error: error.message || "Error al enviar el correo." });
-    }
+    next();
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  // if (process.env.NODE_ENV !== "production") {
+  //   const vite = await createViteServer({
+  //     server: { middlewareMode: true },
+  //     appType: "spa",
+  //   });
+  //   app.use(vite.middlewares);
+  // } else {
+  //   const distPath = path.join(process.cwd(), 'dist');
+  //   app.use(express.static(distPath));
+  //   app.get('*', (req, res) => {
+  //     res.sendFile(path.join(distPath, 'index.html'));
+  //   });
+  // }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
